@@ -1,16 +1,19 @@
 
+/* this program does have a main() but not one that fulfills Rust's
+ * expectations, such as command line arguments */
 #![no_main]
 #![no_std]
 #![feature(asm, const_fn_trait_bound, naked_functions)]
 
 use core::panic::PanicInfo;
 
-/* ! means this is a divergent function. it will never return */
+/* ! means this is a divergent function; it will never return */
 #[panic_handler]
 fn panic(_panic: &PanicInfo<'_>) -> ! {
     loop {}
 }
 
+/* use the function name as its symbol name */
 #[no_mangle]
 pub unsafe extern "C" fn exception_handler() -> () {
     let _x = 42;
@@ -33,11 +36,17 @@ pub unsafe extern "C" fn reset_handler() -> () {
 }
 
 // The reset vector, a pointer into the reset handler
+
+/* places the symbol in a section named .vectors */
 #[link_section = ".vectors"]
 //#[link_section = ".vectors.reset_vector"]
 #[no_mangle]
 #[used]
 pub static RESET_VECTOR: unsafe extern "C" fn() -> () = reset_handler;
+
+#[used]
+pub static mut SHOULD_END_UP_IN_DATA_SECTION: &'static str = "long_string";
+pub static SHOULD_END_UP_IN_DATA2_SECTION: &'static str = "long_string";
 
 extern "C" {
     // Where the end of the stack region is (and hence where the stack should
@@ -65,6 +74,8 @@ extern "C" {
 #[link_section = ".riscv.start"]
 #[export_name = "_start"]
 #[naked]
+/* The only way to make a symbol external in Rust is to make its corresponding item public (pub)
+ * and reachable (no private module between the item and the root of the crate). */
 pub extern "C" fn _start() {
     unsafe {
         asm! ("
@@ -151,7 +162,7 @@ pub extern "C" fn _start() {
 }
 
 #[no_mangle]
-pub unsafe fn main() -> usize {
+pub unsafe fn main() -> ! {
     let x = 43;
     let y = 43;
     let mut counter = 0;
@@ -164,7 +175,8 @@ pub unsafe fn main() -> usize {
             counter += 1;
         }
     }
-    other(x, y)
+    /* make sure we never return, together with -> ! optimizes out a call to the panic_handler */
+    loop {}
 }
 
 pub fn other(x: usize, y: usize) -> usize {
