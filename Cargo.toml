@@ -9,11 +9,11 @@ edition = "2018"
 
 # https://docs.rust-embedded.org/embedonomicon/smallest-no-std.html
 
-# do not unwind on panic, but abort
+# unconditionally abort on panic, do not unwind
 [profile.dev]
 panic = "abort"
 
-# do not unwind on panic, but abort
+# unconditionally abort on panic, do not unwind
 [profile.release]
 panic = "abort"
 # keep debug info in release
