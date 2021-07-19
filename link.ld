@@ -102,5 +102,6 @@ SECTIONS
     /DISCARD/ :
     {
       *(.eh_frame);
+      *(.ARM.exidx .ARM.exidx.*);
     }
 }
