@@ -15,18 +15,19 @@
             // upload task in tasks.json should upload program into target RAM
             // (have not been able to do it here, at least not with OpenOCD GDB pipe)
             "preLaunchTask": "upload",
-
             "setupCommands": [
                 { "text": "-enable-pretty-printing" },
                 { "text": "set pagination off" },
                 { "text": "set remote hardware-breakpoint-limit 2" },
+                { "text": "set remote hardware-watchpoint-limit 0" },
                 { "text": "set print asm-demangle on" },
                 { "text": "set confirm off" },
                 { "text": "set backtrace limit 32" },
-                { "text": "skip -gfile libgcc2.c", "description": "skip over GCC built-in functions (no source available)" },
-                { "text": "skip -function _start", "description": "skip over GCC built-in functions (no source available)" },
-                { "text": "skip -function timer_handler", "description": "skip over GCC built-in functions (no source available)" },
-                { "text": "skip -function delay_loop_ibex", "description": "skip over GCC built-in functions (no source available)" },
+                { "text": "skip -gfile /rustc*" },
+                { "text": "skip -gfile **/library/core/src/*/*.rs" },
+                { "text": "skip -rfunction ^core::ptr::.*" },
+                { "text": "skip -rfunction ^core.*" },
+                { "text": "skip -function _start" },
             ],
             "MIMode": "gdb",
             "miDebuggerPath": "/opt/lowrisc-toolchain-gcc-rv32imc-20210412-1/bin/riscv32-unknown-elf-gdb",
