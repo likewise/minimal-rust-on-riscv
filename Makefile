@@ -4,13 +4,13 @@ OPENOCD = /opt/openocd/bin/openocd
 .PHONY:
 debug-build:
 	cargo build
-	#cargo-objdump -S -l -d target/riscv32imc-unknown-none-elf/debug/app > app.S
+	#cargo-objdump -C -S -l -d target/riscv32imc-unknown-none-elf/debug/app > app.S
 	/opt/lowrisc-toolchain-gcc-rv32imc-20210412-1/bin/riscv32-unknown-elf-objdump -S -l -d target/riscv32imc-unknown-none-elf/debug/app > src/main.S
 
 .PHONY:
 release-build:
 	cargo build --release
-	#cargo-objdump -S -l -d target/riscv32imc-unknown-none-elf/debug/app > app.S
+	#cargo-objdump -C -S -l -d target/riscv32imc-unknown-none-elf/debug/app > app.S
 	/opt/lowrisc-toolchain-gcc-rv32imc-20210412-1/bin/riscv32-unknown-elf-objdump -S -l -d target/riscv32imc-unknown-none-elf/debug/app > src/main.S
 
 
@@ -27,10 +27,14 @@ upload-debug-build: debug-build
 
 # Upload the program using GDB, which starts OpenOCD (0.11.0+ required) with GDB pipe
 debug: debug-build
-	$(GDB) -q \
+	RUST_GDB=$(GDB) rust-gdb -q \
 	-ex "set remotetimeout 3" \
 	-ex "set pagination off" \
+	-ex "skip -gfile **/library/core/src/*/*.rs" \
+	-ex "skip -rfunction .*core.*" \
+	-ex "skip -rfunction ^core.*" \
 	-ex "set remote hardware-breakpoint-limit 2" \
+	-ex "set remote hardware-watchpoint-limit 0" \
 	-ex "set print asm-demangle on" \
 	-ex "target extended-remote | $(OPENOCD) -c \"gdb_port pipe; log_output openocd.log\" -f openocd_zynqmp_bscane2.cfg" \
 	-ex "load" \
@@ -48,3 +52,6 @@ issue: release-build
 	-ex "layout split" \
   -ex "break *0x100060" \
 	target/riscv32imc-unknown-none-elf/release/app
+
+size:
+	cargo size --release -- -A
