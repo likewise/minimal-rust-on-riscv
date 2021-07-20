@@ -14,23 +14,24 @@ fn panic(_panic: &PanicInfo<'_>) -> ! {
 }
 
 /* use the function name as its symbol name */
-#[no_mangle]
+#[no_mangle] // not required, see https://rust-lang.github.io/rfcs/2873-inline-asm.html
 pub unsafe extern "C" fn exception_handler() -> () {
     let _x = 42;
     // can't return so we go into an infinite loop here
     loop {}
+    
 }
 
-#[no_mangle]
+#[no_mangle] // not required, see https://rust-lang.github.io/rfcs/2873-inline-asm.html
 pub unsafe extern "C" fn timer_handler() -> () {
-    let _x = 42;
+    let _x = 43;
     // can't return so we go into an infinite loop here
     loop {}
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn reset_handler() -> () {
-    let _x = 42;
+    let _x = 44;
     // can't return so we go into an infinite loop here
     loop {}
 }
@@ -38,15 +39,15 @@ pub unsafe extern "C" fn reset_handler() -> () {
 // The reset vector, a pointer into the reset handler
 
 /* places the symbol in a section named .vectors */
-#[link_section = ".vectors"]
-//#[link_section = ".vectors.reset_vector"]
-#[no_mangle]
-#[used]
-pub static RESET_VECTOR: unsafe extern "C" fn() -> () = reset_handler;
+//#[link_section = ".vectors"]
+//#[no_mangle]
+//#[used]
+//pub static RESET_VECTOR: unsafe extern "C" fn() -> () = reset_handler;
 
-#[used]
-pub static mut SHOULD_END_UP_IN_DATA_SECTION: &'static str = "long_string";
-pub static SHOULD_END_UP_IN_DATA2_SECTION: &'static str = "long_string";
+//#[used]
+//pub static mut my_data: &'static str = "long_string";
+//#[used]
+//pub static my_rodata: &'static str = "long_string2";
 
 extern "C" {
     // Where the end of the stack region is (and hence where the stack should
@@ -70,14 +71,63 @@ extern "C" {
 }
 
 #[cfg(all(target_arch = "riscv32", target_os = "none"))]
-//#[link_section = ".riscv"]
-#[link_section = ".riscv.start"]
+#[link_section = ".riscv.ibex.trampoline"]
+#[export_name = "_trampoline"]
+#[naked]
+/* The only way to make a symbol external in Rust is to make its corresponding item public (pub)
+ * and reachable (no private module between the item and the root of the crate). */
+pub extern "C" fn _trampoline() {
+    unsafe {
+        /* the following instructions should not be RISC-V compressed */
+        asm! ("
+            j {exception_handler_address}
+            j {exception_handler_address}
+            j {exception_handler_address}
+            j {exception_handler_address}
+            j {exception_handler_address}
+            j {exception_handler_address}
+            j {exception_handler_address}
+            j {timer_handler_address}
+            j {exception_handler_address} // 1
+            j {exception_handler_address}
+            j {exception_handler_address}
+            j {exception_handler_address}
+            j {exception_handler_address}
+            j {exception_handler_address}
+            j {exception_handler_address}
+            j {exception_handler_address}
+            j {exception_handler_address}
+            j {exception_handler_address}
+            j {exception_handler_address}
+            j {exception_handler_address}
+            j {exception_handler_address}
+            j {exception_handler_address}
+            j {exception_handler_address}
+            j {exception_handler_address}
+            j {exception_handler_address}
+            j {exception_handler_address}
+            j {exception_handler_address}
+            j {exception_handler_address}
+            j {exception_handler_address}
+            j {exception_handler_address}
+            j {exception_handler_address} // 23
+        ",
+        exception_handler_address = sym exception_handler,
+        timer_handler_address = sym timer_handler,
+        options(noreturn)
+        );
+    }
+}
+
+#[cfg(all(target_arch = "riscv32", target_os = "none"))]
+#[link_section = ".riscv.ibex.start"]
 #[export_name = "_start"]
 #[naked]
 /* The only way to make a symbol external in Rust is to make its corresponding item public (pub)
  * and reachable (no private module between the item and the root of the crate). */
 pub extern "C" fn _start() {
     unsafe {
+        /* in naked functions only one asm! block may appear -- use GDB with assembler view to debug this */
         asm! ("
             mv  x1, zero // x1 == ra (return address)
             mv  x2, zero // x2 == sp (stack pointer)

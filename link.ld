@@ -6,8 +6,9 @@ OUTPUT_ARCH(riscv)
 
 MEMORY
 {
-    /* 992 kB should be enough for anybody... */
-    ram         : ORIGIN = 0x00100000, LENGTH = 0xF000 /* 56 kB */
+    /* note that the ROM currently is a writable BRAM */
+    rom         : ORIGIN = 0x00100000, LENGTH = 0xE000 /* 56 kB */
+    ram         : ORIGIN = 0x0010E000, LENGTH = 0x1000 /*  4 kB */
     stack       : ORIGIN = 0x0010F000, LENGTH = 0x1000  /* 4 kB */
 }
 
@@ -17,7 +18,7 @@ _stack_len     = LENGTH(stack);
 _stack_bottom  = ORIGIN(stack);
 _stack_top     = ORIGIN(stack) + LENGTH(stack);
 
-_entry_point = _vectors_start + 0x80;
+_entry_point = ORIGIN(rom) + 0x80;
 ENTRY(_entry_point)
 
 /* The tohost address is used by Spike for a magic "stop me now" message. This
@@ -32,21 +33,25 @@ fromhost = _stack_top + 0x10;
 
 SECTIONS
 {
-    .vectors :
+    .riscv.ibex.trampoline ORIGIN(rom) :
     {
+        KEEP(*(.riscv.ibex.trampoline));
+        /*. = ALIGN(4);*/
+    } > rom
+
+    .riscv.ibex.start (ORIGIN(rom) + 0x80) :
+    {
+        KEEP(*(.riscv.ibex.start));
         . = ALIGN(4);
-        _vectors_start = .;
-        KEEP(*(.vectors))
-        _vectors_end = .;
-    } > ram
+    } > rom
 
     .text : {
-        . =  _vectors_start + 0x80;
+        . = ALIGN(4);
         _stext = .;
         KEEP(*(.riscv.start));
         *(.text)
         *(.text.*)
-    }  > ram
+    }  > rom
 
     .rodata : {
         . = ALIGN(4);
@@ -55,12 +60,25 @@ SECTIONS
         *(.srodata.*)
         *(.rodata)
         *(.rodata.*)
-    } > ram
 
     . = ALIGN(4);
     _etext = .;
 
-    .data : AT (_etext) {
+    } > rom
+
+
+    /*The .data section contains static variables which have an initial value at boot. */
+    /* load address (LMA) and its virtual address (VMA). */
+    /* You can think of the LMA as the address “at rest” and the VMA the address during
+    /* execution i.e. when the device is on and the program is running. */
+
+    /* } > ram AT > rom */
+    /* "> ram" is the VMA, "> rom" is the LMA */
+    /* similar, more explicit: */
+    /* .data ORIGIN(ram): AT(ORIGIN(rom))
+    */
+
+    .data : {
         . = ALIGN(4);
         _sdata = .;
 
@@ -72,7 +90,7 @@ SECTIONS
         *(.data .data.*)
         . = ALIGN(4);
         _edata = .;
-    } > ram
+    } > ram AT > rom
 
     .bss (NOLOAD) :
     {
@@ -104,4 +122,6 @@ SECTIONS
       *(.eh_frame);
       *(.ARM.exidx .ARM.exidx.*);
     }
+
+    /* https://microchipsupport.force.com/s/article/How-to-fill-unused-Flash-locations-with-known-values-while-building-a-project */
 }

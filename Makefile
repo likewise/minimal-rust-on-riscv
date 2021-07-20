@@ -6,13 +6,16 @@ debug-build:
 	cargo build
 	#cargo-objdump -C -S -l -d target/riscv32imc-unknown-none-elf/debug/app > app.S
 	/opt/lowrisc-toolchain-gcc-rv32imc-20210412-1/bin/riscv32-unknown-elf-objdump -S -l -d target/riscv32imc-unknown-none-elf/debug/app > src/main.S
+	cargo-objdump -- --show-lma -d -j .riscv.ibex.trampoline
+	cargo-objdump -- --show-lma -d -j .riscv.ibex.start
 
 .PHONY:
 release-build:
 	cargo build --release
 	#cargo-objdump -C -S -l -d target/riscv32imc-unknown-none-elf/debug/app > app.S
 	/opt/lowrisc-toolchain-gcc-rv32imc-20210412-1/bin/riscv32-unknown-elf-objdump -S -l -d target/riscv32imc-unknown-none-elf/release/app > src/main.S
-
+	cargo-objdump --release -- --show-lma -d -j .riscv.ibex.trampoline
+	cargo-objdump --release -- --show-lma -d -j .riscv.ibex.start
 
 # Upload the program using GDB, which starts OpenOCD (0.11.0+ required) with GDB pipe
 upload-debug-build: debug-build
