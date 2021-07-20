@@ -1,6 +1,6 @@
 
 /* this program does have a main() but not one that fulfills Rust's
- * expectations, such as command line arguments */
+ * expectations, such as command line arguments ; use no_main*/
 #![no_main]
 #![no_std]
 #![feature(asm, const_fn_trait_bound, naked_functions)]
@@ -80,7 +80,7 @@ pub extern "C" fn _trampoline() {
     unsafe {
         /* the following instructions should not be RISC-V compressed */
         asm! ("
-            j {exception_handler_address}
+            j exception_handler
             j {exception_handler_address}
             j {exception_handler_address}
             j {exception_handler_address}
@@ -211,14 +211,28 @@ pub extern "C" fn _start() {
     }
 }
 
+//#[used] /* ends up in .data section */
+//static mut outer: u32 = 53;
+
 #[no_mangle]
 pub unsafe fn main() -> ! {
-    let x = 43;
-    let y = 43;
+
+    //let peripherals = ibex_supersystem::Peripherals::take().unwrap();
+    //let mut outer = 0;
     let mut counter = 0;
     let mut outer: u32 = 0;
     loop {
+        // if we do not have peripherals, make main unsafe and write volatile to the GPIO peripheral
         core::ptr::write_volatile(0x80000000 as *mut u32, counter);
+
+        // if we have peripherals 
+        //peripherals.GPIO0.out.write(|w| unsafe { w.bits(counter) });
+
+//        if (counter % 2) == 1 {
+//            peripherals.GPIO0.out.write(|w| w.led0().clear_bit());
+//        } else {
+//            peripherals.GPIO0.out.write(|w| w.led0().set_bit());
+//        }
         outer += 1;
         if outer == 1000000 {
             outer = 0;
