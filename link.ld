@@ -53,7 +53,7 @@ SECTIONS
         /* Small RO data before large RO data */
         *(.srodata)
         *(.srodata.*)
-        *(.rodata);
+        *(.rodata)
         *(.rodata.*)
     } > ram
 
@@ -67,15 +67,14 @@ SECTIONS
         PROVIDE(__global_pointer$ = . + 0x800);
 
         /* Small data before large data */
-        *(.sdata)
-        *(.sdata.*)
-        *(.data);
-        *(.data.*)
+        *(.ramfunc .ramfunc.*)
+        *(.sdata .sdata.* .gnu.linkonce.r.*)
+        *(.data .data.*)
         . = ALIGN(4);
         _edata = .;
     } > ram
 
-    .bss :
+    .bss (NOLOAD) :
     {
         . = ALIGN(4);
         _bss_start = .;
