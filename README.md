@@ -39,3 +39,10 @@ cargo objdump --release -- -s -j .rodata
 # debug
 
 /opt/lowrisc-toolchain-gcc-rv32imc-20210412-1/bin/riscv32-unknown-elf-gdb -x openocd_pipe.gdb target/riscv32imc-unknown-none-elf/debug/app
+
+# TODO
+
+See if we can make use of cortex-debug for RISC-V
+
+https://mabez.dev/blog/posts/esp32-rust-svd-pac/
+
