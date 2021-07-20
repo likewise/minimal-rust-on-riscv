@@ -10,8 +10,16 @@ Based on a combination of
 https://docs.rust-embedded.org/embedonomicon/memory-layout.html
 https://github.com/tock/tock/blob/master/doc/Startup.md
 
+https://docs.rs/svd2rust/0.19.0/svd2rust/
 
-$ rustup target add thumbv7m-none-eabi
+From the Rust RTOS called "Tock":
+
+Rust initial run-time (also known as "r0") in assembly:
+https://github.com/tock/tock/blob/master/arch/rv32i/src/lib.rs
+which has an interdependency on the linker script:
+https://github.com/tock/tock/blob/master/boards/kernel_layout.ld
+
+$ rustup target add riscv32imc-unknown-none-elf
 
 $ # cargo-binutils
 $ cargo install cargo-binutils
@@ -24,33 +32,9 @@ cargo objdump --bin app -- -s --section .vectors
 
 cargo objdump --bin app -- -d
 
-Disassembly of section .text:
+### Dump contents of rodata
 
-00100084 <exception_handler>:
-  100084: 41 11         addi    sp, sp, -16
-  100086: 13 05 a0 02   addi    a0, zero, 42
-  10008a: 2a c6         sw      a0, 12(sp)
-  10008c: 09 a0         j       0x10008e <exception_handler+0xa>
-  10008e: 01 a0         j       0x10008e <exception_handler+0xa>
-
-00100090 <timer_handler>:
-  100090: 41 11         addi    sp, sp, -16
-  100092: 13 05 a0 02   addi    a0, zero, 42
-  100096: 2a c6         sw      a0, 12(sp)
-  100098: 09 a0         j       0x10009a <timer_handler+0xa>
-  10009a: 01 a0         j       0x10009a <timer_handler+0xa>
-
-0010009c <reset_handler>:
-  10009c: 41 11         addi    sp, sp, -16
-  10009e: 13 05 a0 02   addi    a0, zero, 42
-  1000a2: 2a c6         sw      a0, 12(sp)
-  1000a4: 09 a0         j       0x1000a6 <reset_handler+0xa>
-  1000a6: 01 a0         j       0x1000a6 <reset_handler+0xa>
-
-
-
-tock$ less arch/rv32i/src/lib.rs
-less boards/kernel_layout.ld
+cargo objdump --release -- -s -j .rodata
 
 # debug
 
